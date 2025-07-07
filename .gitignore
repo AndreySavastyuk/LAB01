@@ -1,0 +1,36 @@
+# Зависимости
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Базы данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Логи
+logs
+*.log
+
+# Временные файлы
+.tmp/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Переменные окружения
+.env
+.env.local
+.env.production
+
+# Загруженные файлы
+uploads/ 
