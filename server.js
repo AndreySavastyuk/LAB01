@@ -1,13 +1,18 @@
-// server-v2.js - Серверное приложение с улучшенной схемой БД
+// Загрузка переменных окружения
+require('dotenv').config();
+
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const multer = require('multer'); // Для загрузки файлов
+const multer = require('multer');
+
+// Импорт модуля уведомлений
+const NotificationService = require('./notifications');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Настройка загрузки файлов
 const storage = multer.diskStorage({
@@ -37,6 +42,29 @@ const isNewDb = !fs.existsSync(DB_FILE);
 
 // Создание подключения к БД
 const db = new sqlite3.Database(DB_FILE);
+
+// Инициализация службы уведомлений
+let notificationService;
+
+// Конфигурация уведомлений
+const notificationConfig = {
+    appUrl: process.env.APP_URL || 'http://localhost:3000',
+    email: {
+        enabled: process.env.EMAIL_ENABLED === 'true',
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT || '587'),
+        secure: process.env.EMAIL_SECURE === 'true',
+        user: process.env.EMAIL_USER,
+        password: process.env.EMAIL_PASS,
+        from: process.env.EMAIL_FROM || 'Система НК <noreply@company.ru>'
+    },
+    webPush: {
+        enabled: process.env.PUSH_ENABLED === 'true',
+        subject: process.env.VAPID_SUBJECT || 'mailto:admin@company.ru',
+        publicKey: process.env.VAPID_PUBLIC_KEY,
+        privateKey: process.env.VAPID_PRIVATE_KEY
+    }
+};
 
 // Функция для выполнения SQL из файла
 function executeSqlFile(filename) {
@@ -76,52 +104,137 @@ function executeSqlFile(filename) {
 
 // Инициализация БД
 async function initializeDatabase() {
-    if (isNewDb) {
-        console.log('Создание новой базы данных...');
+    const dbExists = fs.existsSync('./ndt_requests_v2.db');
+    
+    if (!dbExists) {
+        console.log('📦 Создание новой базы данных...');
         
-        // Создаем файл schema.sql с улучшенной схемой
+        // Создаем основную схему
         const schema = fs.readFileSync('./schema.sql', 'utf8');
+        const statements = parseSqlStatements(schema);
         
-        db.serialize(() => {
-            // Выполняем схему
-            const statements = schema.split(';').filter(s => s.trim());
-            statements.forEach(statement => {
-                if (statement.trim()) {
+        for (const statement of statements) {
+            if (statement.trim()) {
+                await new Promise((resolve, reject) => {
                     db.run(statement, (err) => {
-                        if (err) console.error('Ошибка создания схемы:', err);
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+            }
+        }
+        
+        // Создаем таблицы для уведомлений
+        if (fs.existsSync('./notifications-schema.sql')) {
+            console.log('📧 Создание таблиц уведомлений...');
+            const notifSchema = fs.readFileSync('./notifications-schema.sql', 'utf8');
+            const notifStatements = parseSqlStatements(notifSchema);
+            
+            for (const statement of notifStatements) {
+                if (statement.trim()) {
+                    await new Promise((resolve, reject) => {
+                        db.run(statement, (err) => {
+                            if (err && !err.message.includes('already exists')) {
+                                console.warn('Предупреждение:', err.message);
+                            }
+                            resolve();
+                        });
                     });
                 }
-            });
-        });
+            }
+        }
         
-        console.log('База данных создана успешно!');
+        console.log('✅ База данных создана успешно!');
     } else {
-        console.log('Проверка существующей базы данных...');
+        console.log('🔍 Проверка существующей базы данных...');
         
         // Проверяем, нужна ли миграция
         db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='requests_v2'", (err, row) => {
             if (!row) {
-                console.log('Требуется миграция базы данных...');
+                console.log('🔄 Требуется миграция базы данных...');
                 migrateDatabase();
+            } else {
+                console.log('✅ База данных актуальна');
             }
         });
     }
+    
+    // Инициализируем службу уведомлений после настройки БД
+    notificationService = new NotificationService(db, notificationConfig);
+    console.log('🔔 Служба уведомлений инициализирована');
+}
+
+function parseSqlStatements(sql) {
+    const statements = [];
+    let current = '';
+    let inTrigger = false;
+    let triggerDepth = 0;
+    
+    const lines = sql.split('\n');
+    
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // Пропускаем комментарии
+        if (trimmedLine.startsWith('--') || trimmedLine === '') {
+            continue;
+        }
+        
+        current += line + '\n';
+        
+        // Определяем начало триггера
+        if (trimmedLine.toUpperCase().includes('CREATE TRIGGER')) {
+            inTrigger = true;
+            triggerDepth = 0;
+        }
+        
+        // Считаем глубину в триггере
+        if (inTrigger) {
+            if (trimmedLine.toUpperCase().includes('BEGIN')) {
+                triggerDepth++;
+            }
+            if (trimmedLine.toUpperCase().includes('END')) {
+                triggerDepth--;
+                
+                // Если мы вышли из всех блоков BEGIN/END и встретили ; после END
+                if (triggerDepth <= 0 && trimmedLine.endsWith(';')) {
+                    inTrigger = false;
+                    statements.push(current.trim());
+                    current = '';
+                    continue;
+                }
+            }
+        }
+        
+        // Обычное завершение команды точкой с запятой (не в триггере)
+        if (!inTrigger && trimmedLine.endsWith(';')) {
+            statements.push(current.trim());
+            current = '';
+        }
+    }
+    
+    // Добавляем последнюю команду, если она не пустая
+    if (current.trim()) {
+        statements.push(current.trim());
+    }
+    
+    return statements;
 }
 
 // Миграция данных из старой структуры в новую
 function migrateDatabase() {
-    console.log('Начинается миграция данных...');
+    console.log('🔄 Начинается миграция данных...');
     
     db.serialize(() => {
         // Сначала создаем новую структуру
         const schema = fs.readFileSync('./schema.sql', 'utf8');
-        const statements = schema.split(';').filter(s => s.trim());
+        const statements = parseSqlStatements(schema);
         
         statements.forEach(statement => {
             if (statement.trim()) {
                 db.run(statement, (err) => {
                     if (err && !err.message.includes('already exists')) {
-                        console.error('Ошибка миграции:', err);
+                        console.error('❌ Ошибка миграции:', err);
                     }
                 });
             }
@@ -130,7 +243,7 @@ function migrateDatabase() {
         // Мигрируем данные из старой таблицы requests в новую requests_v2
         db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='requests'", (err, row) => {
             if (row) {
-                console.log('Мигрируем данные из старой таблицы...');
+                console.log('📋 Мигрируем данные из старой таблицы...');
                 
                 db.run(`
                     INSERT INTO requests_v2 (
@@ -145,9 +258,9 @@ function migrateDatabase() {
                     FROM requests
                 `, (err) => {
                     if (err) {
-                        console.error('Ошибка миграции данных:', err);
+                        console.error('❌ Ошибка миграции данных:', err);
                     } else {
-                        console.log('Миграция завершена успешно!');
+                        console.log('✅ Миграция завершена успешно!');
                         
                         // Обновляем связи
                         updateMigratedData();
@@ -348,7 +461,7 @@ app.get('/api/requests/:id', (req, res) => {
 });
 
 // Создание заявки
-app.post('/api/requests', (req, res) => {
+app.post('/api/requests', async (req, res) => {
     const data = req.body;
     
     const query = `
@@ -370,7 +483,7 @@ app.post('/api/requests', (req, res) => {
         data.deadline, data.user || 'Система', data.user || 'Система'
     ];
     
-    db.run(query, params, function(err) {
+    db.run(query, params, async function(err) {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
@@ -384,18 +497,27 @@ app.post('/api/requests', (req, res) => {
             VALUES (?, 'CREATE', ?, 'Создана новая заявка')
         `, [requestId, data.user || 'Система']);
         
+        // Отправляем уведомление о новой заявке
+        if (notificationService) {
+            try {
+                await notificationService.notifyNewRequest(requestId);
+            } catch (error) {
+                console.error('Ошибка отправки уведомления:', error);
+            }
+        }
+        
         res.json({ id: requestId, message: 'Заявка создана успешно' });
     });
 });
 
 // Обновление заявки
-app.put('/api/requests/:id', (req, res) => {
+app.put('/api/requests/:id', async (req, res) => {
     const { id } = req.params;
     const data = req.body;
     const user = data.user || 'Система';
     
     // Сначала получаем текущие данные для истории
-    db.get('SELECT * FROM requests_v2 WHERE id = ?', [id], (err, oldData) => {
+    db.get('SELECT * FROM requests_v2 WHERE id = ?', [id], async (err, oldData) => {
         if (err || !oldData) {
             res.status(404).json({ error: 'Заявка не найдена' });
             return;
@@ -447,7 +569,7 @@ app.put('/api/requests/:id', (req, res) => {
         
         const query = `UPDATE requests_v2 SET ${updateFields.join(', ')} WHERE id = ?`;
         
-        db.run(query, params, (err) => {
+        db.run(query, params, async (err) => {
             if (err) {
                 res.status(500).json({ error: err.message });
                 return;
@@ -468,6 +590,20 @@ app.put('/api/requests/:id', (req, res) => {
                     INSERT INTO history_v2 (request_id, action_type, comment, user)
                     VALUES (?, 'STATUS_CHANGE', ?, ?)
                 `, [id, `Статус изменен с ${oldData.status_id} на ${data.status_id}`, user]);
+                
+                // Отправляем уведомление об изменении статуса
+                if (notificationService) {
+                    try {
+                        await notificationService.notifyStatusChange(
+                            id, 
+                            oldData.status_id, 
+                            data.status_id, 
+                            user
+                        );
+                    } catch (error) {
+                        console.error('Ошибка отправки уведомления:', error);
+                    }
+                }
             }
             
             res.json({ message: 'Заявка обновлена успешно' });
@@ -554,7 +690,7 @@ app.get('/api/stats', (req, res) => {
             JOIN statuses s ON r.status_id = s.id
             WHERE s.code != 'archived'
         `, (err, row) => {
-            Object.assign(stats, row);
+            Object.assign(stats, row || {});
             
             // По статусам
             db.all(`
@@ -565,7 +701,7 @@ app.get('/api/stats', (req, res) => {
                 GROUP BY s.id
                 ORDER BY s.sort_order
             `, (err, rows) => {
-                stats.byStatus = rows;
+                stats.byStatus = rows || [];
                 
                 // По типам контроля
                 db.all(`
@@ -576,7 +712,7 @@ app.get('/api/stats', (req, res) => {
                     GROUP BY ct.id
                     ORDER BY ct.code
                 `, (err, rows) => {
-                    stats.byControlType = rows;
+                    stats.byControlType = rows || [];
                     
                     // По исполнителям
                     db.all(`
@@ -589,7 +725,7 @@ app.get('/api/stats', (req, res) => {
                         GROUP BY e.id
                         ORDER BY count DESC
                     `, (err, rows) => {
-                        stats.byExecutor = rows;
+                        stats.byExecutor = rows || [];
                         
                         // По приоритетам
                         db.all(`
@@ -607,7 +743,7 @@ app.get('/api/stats', (req, res) => {
                             GROUP BY priority
                             ORDER BY priority
                         `, (err, rows) => {
-                            stats.byPriority = rows;
+                            stats.byPriority = rows || [];
                             res.json(stats);
                         });
                     });
@@ -685,22 +821,81 @@ app.get('/api/templates', (req, res) => {
     });
 });
 
+// Добавляем маршруты уведомлений
+if (notificationService) {
+    const notificationRoutes = require('./notification-routes')(db, notificationService);
+    app.use('/api/notifications', notificationRoutes);
+}
+
+// Экспорт в CSV
+app.get('/api/export', (req, res) => {
+    db.all(`
+        SELECT 
+            r.id,
+            r.request_number,
+            r.date,
+            r.order_number,
+            r.drawing,
+            ct.name as control_type,
+            st.name as station,
+            e.full_name as executor,
+            s.name as status,
+            r.priority,
+            r.deadline
+        FROM requests_v2 r
+        LEFT JOIN statuses s ON r.status_id = s.id
+        LEFT JOIN control_types ct ON r.control_type_id = ct.id
+        LEFT JOIN stations st ON r.station_id = st.id
+        LEFT JOIN executors e ON r.executor_id = e.id
+        WHERE s.code != 'archived' 
+        ORDER BY r.id DESC
+    `, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+
+        let csv = '\ufeff'; // BOM для корректного отображения кириллицы
+        csv += 'ID,Номер заявки,Дата,Заказ,Чертеж/Деталь,Тип контроля,Станция АЭС,Исполнитель,Статус,Приоритет,Срок выполнения\n';
+
+        rows.forEach(row => {
+            const priorityText = row.priority === 1 ? 'Высокий' : row.priority === 2 ? 'Средний' : 'Низкий';
+            csv += `${row.id},"${row.request_number || ''}","${row.date}","${row.order_number}","${row.drawing}",`;
+            csv += `"${row.control_type}","${row.station}","${row.executor}","${row.status}","${priorityText}",`;
+            csv += `"${row.deadline || ''}"\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename=requests_${new Date().toISOString().split('T')[0]}.csv`);
+        res.send(csv);
+    });
+});
+
 // Инициализация и запуск сервера
 initializeDatabase().then(() => {
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Сервер запущен на http://localhost:${PORT}`);
-        console.log(`Другие компьютеры в сети могут подключиться по адресу http://ВАШ_IP:${PORT}`);
+        console.log(`
+╔════════════════════════════════════════════════════════╗
+║  🚀 Сервер запущен успешно!                            ║
+║                                                        ║
+║  📍 Локальный доступ: http://localhost:${PORT}           ║
+║  🌐 Сетевой доступ:   http://ВАШ_IP:${PORT}              ║
+║                                                        ║
+║  📧 Email уведомления: ${notificationConfig.email.enabled ? '✅ Включены' : '❌ Отключены'}               ║
+║  📱 Push уведомления:  ${notificationConfig.webPush.enabled ? '✅ Включены' : '❌ Отключены'}               ║
+╚════════════════════════════════════════════════════════╝
+        `);
     });
 }).catch(err => {
-    console.error('Ошибка инициализации БД:', err);
+    console.error('❌ Ошибка инициализации БД:', err);
 });
 
 // Обработка graceful shutdown
 process.on('SIGINT', () => {
-    console.log('\nЗавершение работы сервера...');
+    console.log('\n🛑 Завершение работы сервера...');
     db.close((err) => {
         if (err) console.error(err.message);
-        console.log('База данных закрыта.');
+        console.log('💾 База данных закрыта.');
         process.exit(0);
     });
 });

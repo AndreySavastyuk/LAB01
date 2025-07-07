@@ -1,0 +1,62 @@
+{
+    "appUrl": "http://localhost:3000",
+    "email": {
+      "enabled": true,
+      "host": "smtp.yandex.ru",
+      "port": 465,
+      "secure": true,
+      "user": "your-email@yandex.ru",
+      "password": "your-password",
+      "from": "Система НК <your-email@yandex.ru>",
+      "replyTo": "noreply@company.ru"
+    },
+    "webPush": {
+      "enabled": true,
+      "subject": "mailto:admin@company.ru",
+      "publicKey": "YOUR_VAPID_PUBLIC_KEY",
+      "privateKey": "YOUR_VAPID_PRIVATE_KEY"
+    },
+    "sms": {
+      "enabled": false,
+      "provider": "sms.ru",
+      "apiKey": "YOUR_SMS_API_KEY",
+      "sender": "NDT-System"
+    },
+    "notifications": {
+      "newRequest": {
+        "email": true,
+        "push": true,
+        "roles": ["admin", "manager", "executor"]
+      },
+      "statusChange": {
+        "email": true,
+        "push": true,
+        "criticalStatuses": ["correction_required", "cancelled"],
+        "notifyManagerOnCritical": true
+      },
+      "deadline": {
+        "email": true,
+        "push": true,
+        "remindBefore": [1, 3],
+        "remindTime": "09:00"
+      },
+      "overdue": {
+        "email": true,
+        "push": true,
+        "checkInterval": 30,
+        "escalateAfterDays": 3
+      },
+      "dailySummary": {
+        "email": true,
+        "time": "09:00",
+        "workDaysOnly": true,
+        "roles": ["admin", "manager"]
+      }
+    },
+    "workingHours": {
+      "start": "08:00",
+      "end": "18:00",
+      "workDays": [1, 2, 3, 4, 5],
+      "respectQuietHours": true
+    }
+  }
