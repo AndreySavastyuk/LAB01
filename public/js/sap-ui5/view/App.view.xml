@@ -1,0 +1,39 @@
+<mvc:View
+    controllerName="lab01.controller.App"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    displayBlock="true">
+    
+    <Page title="LAB01 - Система управления заявками НК">
+        <content>
+            <VBox class="sapUiMediumMargin">
+                <Title text="Добро пожаловать в SAP UI5 версию LAB01" level="H2"/>
+                <Text text="Современный интерфейс для управления заявками НК"/>
+                
+                <Panel headerText="Быстрые действия" class="sapUiMediumMarginTop">
+                    <content>
+                        <HBox class="sapUiMediumMargin">
+                            <Button text="Создать заявку" type="Emphasized" icon="sap-icon://add" press=".onCreateRequest"/>
+                            <Button text="Просмотр заявок" icon="sap-icon://list" press=".onViewRequests" class="sapUiMediumMarginBegin"/>
+                            <Button text="Отчеты" icon="sap-icon://chart-table-view" press=".onReports" class="sapUiMediumMarginBegin"/>
+                        </HBox>
+                    </content>
+                </Panel>
+                
+                <Panel headerText="Статистика" class="sapUiMediumMarginTop">
+                    <content>
+                        <Text text="Здесь будет отображаться статистика по заявкам"/>
+                    </content>
+                </Panel>
+            </VBox>
+        </content>
+        
+        <footer>
+            <Bar>
+                <contentMiddle>
+                    <Button text="← Классическая версия" press=".onClassicVersion"/>
+                </contentMiddle>
+            </Bar>
+        </footer>
+    </Page>
+</mvc:View> 

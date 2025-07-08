@@ -1,0 +1,40 @@
+﻿{
+    "_version": "1.32.0",
+    "sap.app": {
+        "id": "lab01",
+        "type": "application",
+        "applicationVersion": {
+            "version": "2.0.0"
+        },
+        "title": "LAB01 System"
+    },
+    "sap.ui": {
+        "technology": "UI5",
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": true
+        }
+    },
+    "sap.ui5": {
+        "dependencies": {
+            "minUI5Version": "1.100.0",
+            "libs": {
+                "sap.m": {},
+                "sap.ui.core": {},
+                "sap.ui.layout": {}
+            }
+        },
+        "models": {
+            "": {
+                "type": "sap.ui.model.json.JSONModel"
+            }
+        },
+        "rootView": {
+            "viewName": "lab01.view.App",
+            "type": "XML",
+            "async": true,
+            "id": "app"
+        }
+    }
+}

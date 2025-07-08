@@ -1,0 +1,535 @@
+<!-- Settings.view.xml - Расширенный дашборд настроек -->
+<mvc:View
+    controllerName="lab01.controller.Settings"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:l="sap.ui.layout"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:core="sap.ui.core">
+    
+    <Page
+        title="Настройки системы"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <content>
+            <IconTabBar
+                id="settingsTabBar"
+                selectedKey="{settings>/selectedTab}"
+                select=".onTabSelect">
+                
+                <!-- Общие настройки -->
+                <items>
+                    <IconTabFilter
+                        key="general"
+                        text="Общие"
+                        icon="sap-icon://settings">
+                        
+                        <Panel headerText="Основные настройки">
+                            <f:SimpleForm
+                                editable="true"
+                                layout="ResponsiveGridLayout"
+                                labelSpanXL="4"
+                                labelSpanL="4"
+                                labelSpanM="12"
+                                labelSpanS="12"
+                                columnsXL="2"
+                                columnsL="2"
+                                columnsM="1">
+                                
+                                <f:content>
+                                    <Label text="Название организации"/>
+                                    <Input 
+                                        value="{settings>/companyName}" 
+                                        placeholder="ООО Лаборатория НК"/>
+                                    
+                                    <Label text="Язык интерфейса"/>
+                                    <Select selectedKey="{settings>/language}">
+                                        <items>
+                                            <core:Item key="ru" text="Русский"/>
+                                            <core:Item key="en" text="English"/>
+                                        </items>
+                                    </Select>
+                                    
+                                    <Label text="Часовой пояс"/>
+                                    <Select selectedKey="{settings>/timezone}">
+                                        <items>
+                                            <core:Item key="UTC+3" text="Москва (UTC+3)"/>
+                                            <core:Item key="UTC+5" text="Екатеринбург (UTC+5)"/>
+                                            <core:Item key="UTC+7" text="Новосибирск (UTC+7)"/>
+                                        </items>
+                                    </Select>
+                                    
+                                    <Label text="Формат даты"/>
+                                    <Select selectedKey="{settings>/dateFormat}">
+                                        <items>
+                                            <core:Item key="DD.MM.YYYY" text="ДД.ММ.ГГГГ"/>
+                                            <core:Item key="MM/DD/YYYY" text="ММ/ДД/ГГГГ"/>
+                                            <core:Item key="YYYY-MM-DD" text="ГГГГ-ММ-ДД"/>
+                                        </items>
+                                    </Select>
+                                    
+                                    <Label text="Рабочие дни"/>
+                                    <MultiComboBox
+                                        selectedKeys="{settings>/workDays}">
+                                        <items>
+                                            <core:Item key="1" text="Понедельник"/>
+                                            <core:Item key="2" text="Вторник"/>
+                                            <core:Item key="3" text="Среда"/>
+                                            <core:Item key="4" text="Четверг"/>
+                                            <core:Item key="5" text="Пятница"/>
+                                            <core:Item key="6" text="Суббота"/>
+                                            <core:Item key="0" text="Воскресенье"/>
+                                        </items>
+                                    </MultiComboBox>
+                                    
+                                    <Label text="Рабочее время"/>
+                                    <HBox>
+                                        <TimePicker
+                                            value="{settings>/workStartTime}"
+                                            placeholder="09:00"/>
+                                        <Text text=" - "/>
+                                        <TimePicker
+                                            value="{settings>/workEndTime}"
+                                            placeholder="18:00"/>
+                                    </HBox>
+                                </f:content>
+                            </f:SimpleForm>
+                        </Panel>
+                    </IconTabFilter>
+                    
+                    <!-- Внешний вид -->
+                    <IconTabFilter
+                        key="appearance"
+                        text="Внешний вид"
+                        icon="sap-icon://palette">
+                        
+                        <Panel headerText="Тема оформления">
+                            <VBox class="sapUiMediumMargin">
+                                <RadioButtonGroup 
+                                    selectedIndex="{settings>/themeIndex}"
+                                    select=".onThemeSelect">
+                                    <RadioButton text="SAP Fiori 3" />
+                                    <RadioButton text="SAP Fiori 3 Dark" />
+                                    <RadioButton text="SAP Horizon" />
+                                    <RadioButton text="SAP Horizon Dark" />
+                                    <RadioButton text="SAP Belize" />
+                                    <RadioButton text="SAP Belize Plus" />
+                                </RadioButtonGroup>
+                                
+                                <HBox class="sapUiMediumMarginTop">
+                                    <Switch 
+                                        state="{settings>/compactMode}"
+                                        customTextOn="Compact"
+                                        customTextOff="Cozy"/>
+                                    <Text 
+                                        text="Компактный режим отображения"
+                                        class="sapUiMediumMarginBegin"/>
+                                </HBox>
+                                
+                                <HBox class="sapUiSmallMarginTop">
+                                    <Switch 
+                                        state="{settings>/highContrast}"
+                                        customTextOn="Вкл"
+                                        customTextOff="Выкл"/>
+                                    <Text 
+                                        text="Высокая контрастность"
+                                        class="sapUiMediumMarginBegin"/>
+                                </HBox>
+                            </VBox>
+                        </Panel>
+                        
+                        <Panel headerText="Настройки отображения">
+                            <f:SimpleForm editable="true">
+                                <f:content>
+                                    <Label text="Размер шрифта"/>
+                                    <Slider
+                                        value="{settings>/fontSize}"
+                                        min="12"
+                                        max="20"
+                                        step="1"
+                                        width="300px"
+                                        enableTickmarks="true"
+                                        showAdvancedTooltip="true"/>
+                                    
+                                    <Label text="Анимации"/>
+                                    <Switch 
+                                        state="{settings>/animationsEnabled}"
+                                        customTextOn="Вкл"
+                                        customTextOff="Выкл"/>
+                                    
+                                    <Label text="Показывать подсказки"/>
+                                    <Switch 
+                                        state="{settings>/showTooltips}"
+                                        customTextOn="Да"
+                                        customTextOff="Нет"/>
+                                </f:content>
+                            </f:SimpleForm>
+                        </Panel>
+                    </IconTabFilter>
+                    
+                    <!-- Уведомления -->
+                    <IconTabFilter
+                        key="notifications"
+                        text="Уведомления"
+                        icon="sap-icon://bell"
+                        iconColor="Positive"
+                        count="{settings>/notificationCount}">
+                        
+                        <Panel headerText="Email уведомления">
+                            <VBox class="sapUiMediumMargin">
+                                <CheckBox 
+                                    text="Получать email уведомления"
+                                    selected="{settings>/emailEnabled}"/>
+                                <Input
+                                    value="{settings>/emailAddress}"
+                                    placeholder="email@example.com"
+                                    enabled="{settings>/emailEnabled}"
+                                    class="sapUiSmallMarginTop"/>
+                                
+                                <Text 
+                                    text="Типы уведомлений:"
+                                    class="sapUiMediumMarginTop sapUiMediumMarginBottom"/>
+                                
+                                <CheckBox 
+                                    text="Новые заявки"
+                                    selected="{settings>/notifyNewRequests}"
+                                    enabled="{settings>/emailEnabled}"/>
+                                <CheckBox 
+                                    text="Изменения статусов"
+                                    selected="{settings>/notifyStatusChanges}"
+                                    enabled="{settings>/emailEnabled}"/>
+                                <CheckBox 
+                                    text="Приближающиеся дедлайны"
+                                    selected="{settings>/notifyDeadlines}"
+                                    enabled="{settings>/emailEnabled}"/>
+                                <CheckBox 
+                                    text="Ежедневная сводка"
+                                    selected="{settings>/notifyDailySummary}"
+                                    enabled="{settings>/emailEnabled}"/>
+                            </VBox>
+                        </Panel>
+                        
+                        <Panel headerText="Push-уведомления">
+                            <VBox class="sapUiMediumMargin">
+                                <MessageStrip
+                                    text="Push-уведомления работают только через HTTPS или localhost"
+                                    type="Information"
+                                    showIcon="true"
+                                    class="sapUiSmallMarginBottom"/>
+                                
+                                <Button
+                                    text="{= ${settings>/pushEnabled} ? 'Отключить push-уведомления' : 'Включить push-уведомления' }"
+                                    type="{= ${settings>/pushEnabled} ? 'Default' : 'Emphasized' }"
+                                    icon="{= ${settings>/pushEnabled} ? 'sap-icon://disconnect' : 'sap-icon://connected' }"
+                                    press=".onTogglePush"/>
+                                
+                                <Text 
+                                    text="Тихие часы:"
+                                    class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
+                                
+                                <HBox>
+                                    <TimePicker
+                                        value="{settings>/quietHoursStart}"
+                                        enabled="{settings>/pushEnabled}"
+                                        placeholder="22:00"/>
+                                    <Text text=" - " class="sapUiSmallMargin"/>
+                                    <TimePicker
+                                        value="{settings>/quietHoursEnd}"
+                                        enabled="{settings>/pushEnabled}"
+                                        placeholder="08:00"/>
+                                </HBox>
+                                
+                                <Button
+                                    text="Тестовое уведомление"
+                                    press=".onTestNotification"
+                                    enabled="{settings>/pushEnabled}"
+                                    class="sapUiMediumMarginTop"/>
+                            </VBox>
+                        </Panel>
+                    </IconTabFilter>
+                    
+                    <!-- Интеграции -->
+                    <IconTabFilter
+                        key="integrations"
+                        text="Интеграции"
+                        icon="sap-icon://chain-link">
+                        
+                        <Panel headerText="SAP интеграция">
+                            <f:SimpleForm editable="true">
+                                <f:content>
+                                    <Label text="SAP System ID"/>
+                                    <Input 
+                                        value="{settings>/sapSystemId}"
+                                        placeholder="PRD"/>
+                                    
+                                    <Label text="SAP Client"/>
+                                    <Input 
+                                        value="{settings>/sapClient}"
+                                        placeholder="100"/>
+                                    
+                                    <Label text="RFC Destination"/>
+                                    <Input 
+                                        value="{settings>/rfcDestination}"
+                                        placeholder="LAB01_RFC"/>
+                                    
+                                    <Label text="Автосинхронизация"/>
+                                    <Switch 
+                                        state="{settings>/sapAutoSync}"
+                                        customTextOn="Вкл"
+                                        customTextOff="Выкл"/>
+                                </f:content>
+                            </f:SimpleForm>
+                        </Panel>
+                        
+                        <Panel headerText="1C интеграция">
+                            <f:SimpleForm editable="true">
+                                <f:content>
+                                    <Label text="1C Web-сервис URL"/>
+                                    <Input 
+                                        value="{settings>/1cWebServiceUrl}"
+                                        placeholder="http://1c.company.ru/ws"/>
+                                    
+                                    <Label text="Пользователь"/>
+                                    <Input 
+                                        value="{settings>/1cUser}"
+                                        placeholder="WebService"/>
+                                    
+                                    <Label text="Пароль"/>
+                                    <Input 
+                                        value="{settings>/1cPassword}"
+                                        type="Password"/>
+                                    
+                                    <Label text="Синхронизация заказов"/>
+                                    <Switch 
+                                        state="{settings>/1cSyncOrders}"
+                                        customTextOn="Вкл"
+                                        customTextOff="Выкл"/>
+                                </f:content>
+                            </f:SimpleForm>
+                        </Panel>
+                    </IconTabFilter>
+                    
+                    <!-- Данные и экспорт -->
+                    <IconTabFilter
+                        key="data"
+                        text="Данные"
+                        icon="sap-icon://database">
+                        
+                        <Panel headerText="Экспорт данных">
+                            <VBox class="sapUiMediumMargin">
+                                <Text text="Выберите формат экспорта:"/>
+                                
+                                <RadioButtonGroup 
+                                    selectedIndex="{settings>/exportFormat}"
+                                    class="sapUiSmallMarginTop">
+                                    <RadioButton text="Excel (.xlsx)" />
+                                    <RadioButton text="CSV (.csv)" />
+                                    <RadioButton text="PDF (.pdf)" />
+                                    <RadioButton text="JSON (.json)" />
+                                </RadioButtonGroup>
+                                
+                                <HBox class="sapUiMediumMarginTop">
+                                    <Button
+                                        text="Экспорт заявок"
+                                        type="Emphasized"
+                                        icon="sap-icon://excel-attachment"
+                                        press=".onExportRequests"/>
+                                    <Button
+                                        text="Экспорт отчетов"
+                                        icon="sap-icon://pdf-attachment"
+                                        press=".onExportReports"
+                                        class="sapUiSmallMarginBegin"/>
+                                </HBox>
+                            </VBox>
+                        </Panel>
+                        
+                        <Panel headerText="Резервное копирование">
+                            <VBox class="sapUiMediumMargin">
+                                <MessageStrip
+                                    text="Последнее резервное копирование: {settings>/lastBackup}"
+                                    type="Success"
+                                    showIcon="true"/>
+                                
+                                <CheckBox 
+                                    text="Автоматическое резервное копирование"
+                                    selected="{settings>/autoBackup}"
+                                    class="sapUiSmallMarginTop"/>
+                                
+                                <Select 
+                                    selectedKey="{settings>/backupFrequency}"
+                                    enabled="{settings>/autoBackup}"
+                                    class="sapUiSmallMarginTop">
+                                    <items>
+                                        <core:Item key="daily" text="Ежедневно"/>
+                                        <core:Item key="weekly" text="Еженедельно"/>
+                                        <core:Item key="monthly" text="Ежемесячно"/>
+                                    </items>
+                                </Select>
+                                
+                                <Button
+                                    text="Создать резервную копию сейчас"
+                                    icon="sap-icon://save"
+                                    press=".onBackupNow"
+                                    class="sapUiMediumMarginTop"/>
+                            </VBox>
+                        </Panel>
+                    </IconTabFilter>
+                    
+                    <!-- Права доступа -->
+                    <IconTabFilter
+                        key="permissions"
+                        text="Права доступа"
+                        icon="sap-icon://key-user-settings">
+                        
+                        <Panel headerText="Управление пользователями">
+                            <OverflowToolbar>
+                                <SearchField
+                                    placeholder="Поиск пользователей"
+                                    search=".onSearchUsers"
+                                    width="300px"/>
+                                <ToolbarSpacer/>
+                                <Button
+                                    text="Добавить пользователя"
+                                    icon="sap-icon://add-employee"
+                                    press=".onAddUser"/>
+                            </OverflowToolbar>
+                            
+                            <Table
+                                items="{users>/list}"
+                                mode="SingleSelectMaster">
+                                <columns>
+                                    <Column>
+                                        <Text text="Пользователь"/>
+                                    </Column>
+                                    <Column>
+                                        <Text text="Роль"/>
+                                    </Column>
+                                    <Column>
+                                        <Text text="Email"/>
+                                    </Column>
+                                    <Column>
+                                        <Text text="Статус"/>
+                                    </Column>
+                                    <Column>
+                                        <Text text="Действия"/>
+                                    </Column>
+                                </columns>
+                                <items>
+                                    <ColumnListItem>
+                                        <cells>
+                                            <ObjectIdentifier
+                                                title="{users>fullName}"
+                                                text="{users>username}"/>
+                                            <Select selectedKey="{users>role}">
+                                                <items>
+                                                    <core:Item key="admin" text="Администратор"/>
+                                                    <core:Item key="manager" text="Менеджер"/>
+                                                    <core:Item key="user" text="Пользователь"/>
+                                                    <core:Item key="viewer" text="Просмотр"/>
+                                                </items>
+                                            </Select>
+                                            <Text text="{users>email}"/>
+                                            <ObjectStatus
+                                                text="{= ${users>isActive} ? 'Активен' : 'Заблокирован' }"
+                                                state="{= ${users>isActive} ? 'Success' : 'Error' }"/>
+                                            <HBox>
+                                                <Button
+                                                    icon="sap-icon://edit"
+                                                    type="Transparent"
+                                                    press=".onEditUser"/>
+                                                <Button
+                                                    icon="{= ${users>isActive} ? 'sap-icon://locked' : 'sap-icon://unlocked' }"
+                                                    type="Transparent"
+                                                    press=".onToggleUserStatus"/>
+                                            </HBox>
+                                        </cells>
+                                    </ColumnListItem>
+                                </items>
+                            </Table>
+                        </Panel>
+                    </IconTabFilter>
+                    
+                    <!-- О системе -->
+                    <IconTabFilter
+                        key="about"
+                        text="О системе"
+                        icon="sap-icon://information">
+                        
+                        <Panel headerText="Информация о системе">
+                            <l:VerticalLayout class="sapUiMediumMargin">
+                                <ObjectStatus
+                                    icon="sap-icon://lab"
+                                    text="LAB01 - Система управления заявками НК"
+                                    state="Information"/>
+                                
+                                <l:HorizontalLayout class="sapUiSmallMarginTop">
+                                    <Label text="Версия:" design="Bold"/>
+                                    <Text text="2.0.0 (SAP UI5 Edition)" class="sapUiSmallMarginBegin"/>
+                                </l:HorizontalLayout>
+                                
+                                <l:HorizontalLayout>
+                                    <Label text="SAP UI5:" design="Bold"/>
+                                    <Text text="{/sapUI5Version}" class="sapUiSmallMarginBegin"/>
+                                </l:HorizontalLayout>
+                                
+                                <l:HorizontalLayout>
+                                    <Label text="База данных:" design="Bold"/>
+                                    <Text text="SQLite 3.x" class="sapUiSmallMarginBegin"/>
+                                </l:HorizontalLayout>
+                                
+                                <l:HorizontalLayout>
+                                    <Label text="Сервер:" design="Bold"/>
+                                    <Text text="Node.js {/nodeVersion}" class="sapUiSmallMarginBegin"/>
+                                </l:HorizontalLayout>
+                                
+                                <Link
+                                    text="Документация"
+                                    href="/docs"
+                                    target="_blank"
+                                    class="sapUiSmallMarginTop"/>
+                                
+                                <Link
+                                    text="Сообщить об ошибке"
+                                    press=".onReportBug"/>
+                                
+                                <MessageStrip
+                                    text="© 2024 LAB01. Все права защищены."
+                                    type="Information"
+                                    showIcon="false"
+                                    class="sapUiMediumMarginTop"/>
+                            </l:VerticalLayout>
+                        </Panel>
+                        
+                        <Panel headerText="Лицензии">
+                            <Text text="Это программное обеспечение использует следующие открытые библиотеки:"/>
+                            <List
+                                items="{licenses>/list}"
+                                class="sapUiSmallMarginTop">
+                                <StandardListItem
+                                    title="{licenses>name}"
+                                    description="{licenses>license}"
+                                    info="{licenses>version}"
+                                    infoState="Information"/>
+                            </List>
+                        </Panel>
+                    </IconTabFilter>
+                </items>
+            </IconTabBar>
+        </content>
+        
+        <footer>
+            <OverflowToolbar>
+                <ToolbarSpacer/>
+                <Button
+                    text="Сохранить изменения"
+                    type="Emphasized"
+                    icon="sap-icon://save"
+                    press=".onSaveSettings"/>
+                <Button
+                    text="Отмена"
+                    press=".onCancel"/>
+            </OverflowToolbar>
+        </footer>
+    </Page>
+</mvc:View>
